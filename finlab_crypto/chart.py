@@ -32,7 +32,7 @@ def chart(dfstock, overlaps=dict(), figures=dict(), markers=dict(), markerlines=
     main_chart_height = 300
     margin_left = 50
     vol_chart_height = 50
-    sub_figure_height = 60
+    sub_figure_height = 300
     width = 800
 
     dfstock = dfstock.loc[start_date:end_date]
@@ -176,7 +176,9 @@ def chart(dfstock, overlaps=dict(), figures=dict(), markers=dict(), markerlines=
             print('Object type not accept (only pd.Series or tuple)')
             raise
 
-        values = series.to_list()
+        # values = series.to_list()
+        values = [round(val, 2) if name == 'performance' else val for val in series.to_list()]
+
         index = series.index.astype(str).to_list()
 
         chart = None
@@ -251,6 +253,12 @@ def chart(dfstock, overlaps=dict(), figures=dict(), markers=dict(), markerlines=
                     range_end=100,
                 ),
             ],
+            tooltip_opts = opts.TooltipOpts(
+                is_show = True,
+                trigger = 'axis',
+                trigger_on = 'mousemove/click',
+                axis_pointer_type = 'shadow'
+            )
             #title_opts=opts.TitleOpts(title="Kline-DataZoom-inside"),
         )
 
@@ -296,4 +304,5 @@ def chart(dfstock, overlaps=dict(), figures=dict(), markers=dict(), markerlines=
                                    ),
         )
         chart_size = {'height': total_height,  'width': width}
+        # grid_chart.render_notebook()
     return grid_chart, chart_size

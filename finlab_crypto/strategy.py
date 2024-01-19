@@ -387,7 +387,6 @@ class Strategy(object):
 
             # plot results
             plot_combination(portfolio, cscv_result)
-            plt.show()
             variable_visualization(portfolio)
 
         return portfolio

@@ -183,8 +183,7 @@ def plot_strategy(ohlcv, entries, exits, portfolio ,fig_data, html=None, k_color
 
     return c
 
-def plot_combination(portfolio, cscv_result=None, metric='final_value'):
-
+def plot_cumulative_returns(portfolio, metric='final_value'):
     sns.set()
     sns.set_style("whitegrid")
 
@@ -215,7 +214,7 @@ def plot_combination(portfolio, cscv_result=None, metric='final_value'):
 
     plt.show()
 
-
+def plot_partial_differentiation(portfolio):
     items = ['final_value', 'sharpe_ratio', 'sortino_ratio']
     fig, axes = plt.subplots(1, len(items), figsize=(15, 3),
                              sharey=False, sharex=False, constrained_layout=False)
@@ -241,7 +240,9 @@ def plot_combination(portfolio, cscv_result=None, metric='final_value'):
         results = pd.DataFrame(results)
         axes[i].title.set_text(item)
         results.plot(ax=axes[i])
+    plt.show()
 
+def plot_cscv_result(cscv_result):
     if cscv_result is None:
         return
 
@@ -272,10 +273,15 @@ def plot_combination(portfolio, cscv_result=None, metric='final_value'):
     if len(results['dom_df']) != 0: results['dom_df'].plot(ax=axes[2], secondary_y=['SD2'])
     axes[2].set_xlabel('Performance optimized vs non-optimized')
     axes[2].set_ylabel('Frequency')
+    plt.show()
 
+def plot_combination(portfolio, cscv_result=None, metric='final_value'):
+    plot_cumulative_returns(portfolio=portfolio, metric=metric)
+    plot_partial_differentiation(portfolio=portfolio)
+    plot_cscv_result(cscv_result=cscv_result)
 
 def variable_visualization(portfolio):
-
+    # 獲取投資組合的性能指標名稱
     param_names = portfolio.cumulative_returns().columns.names
     dropdown1 = widgets.Dropdown(
         options=param_names,
@@ -285,11 +291,12 @@ def variable_visualization(portfolio):
     )
     dropdown2 = widgets.Dropdown(
         options=param_names,
-        value=param_names[0],
+        value=param_names[1],
         description='axis 2:',
         disabled=False,
     )
 
+    # 創建下拉菜單，用於選擇要顯示的性能指標
     performance_metric = ['final_value',
         'calmar_ratio', 'max_drawdown', 'sharpe_ratio',
         'downside_risk', 'omega_ratio', 'conditional_value_at_risk']
@@ -301,34 +308,46 @@ def variable_visualization(portfolio):
         disabled=False,
     )
 
+    # 創建輸出區域
     out = widgets.Output()
 
     import matplotlib.pyplot as plt
     def update(v):
+        # 獲取選擇的 X 和 Y 軸以及性能指標
         name1 = dropdown1.value
         name2 = dropdown2.value
         performance = performance_dropdwon.value
 
         with out:
             # out.clear_output()
+            # 如果 X 和 Y 軸不同，則創建熱力圖
             if name1 != name2:
+                # df = (getattr(portfolio, performance)()
+                #       .reset_index().groupby([name1, name2]).mean()[performance]
+                #       .reset_index().pivot(name1, name2)[performance])
                 df = (getattr(portfolio, performance)()
-                      .reset_index().groupby([name1, name2]).mean()[performance]
-                      .reset_index().pivot(name1, name2)[performance])
+                    .reset_index().groupby([name1, name2]).mean()
+                    .pivot_table(values=performance, index=name1, columns=name2)
+                )
 
                 df = df.replace([np.inf, -np.inf], np.nan)
-                sns.heatmap(df)
+                sns.heatmap(df)  # 使用 annot 參數添加數值標籤
             else:
+                # 如果 X 和 Y 軸相同，則創建折線圖
                 getattr(portfolio, performance)().groupby(name1).mean().plot()
 
+            # 顯示圖形
             plt.show()
 
-
+    # 監聽下拉菜單的變化，當值發生變化時，調用 update 函數
     dropdown1.observe(update, 'value')
     dropdown2.observe(update, 'value')
     performance_dropdwon.observe(update, 'value')
+    # 創建一個垂直布局，包含性能指標下拉菜單和 X、Y 軸下拉菜單的水平布局
     drawdowns = widgets.VBox([performance_dropdwon,
                  widgets.HBox([dropdown1, dropdown2])])
+    # 顯示水平布局和輸出區域
     display(drawdowns)
     display(out)
+    # 初始化可視化，顯示初始圖形
     update(0)
